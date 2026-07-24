@@ -1,0 +1,59 @@
+# Netlify config for @por/por-browser (1AM / Lace browser DApp).
+#
+# Netlify UI → Site settings → Build & deploy:
+#   Base directory : packages/por-browser
+#
+# Netlify installs the pnpm workspace from the repo root (corepack + packageManager
+# pin), then runs the build command below relative to the base directory.
+#
+# ZK keys (~18 MB N=8 proveSolvency.prover) must be present before build — see
+# scripts/copy-zk-assets.sh and DEPLOY.md.
+
+[build]
+  command = "pnpm build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# --- ZK artifacts (must be served as raw binaries, not index.html) ------------
+# Netlify serves existing files before SPA fallback, but explicit rules guarantee
+# ProofStation / 1AM can fetch keys even if redirect order changes.
+
+[[headers]]
+  for = "/keys/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Cache-Control = "public, max-age=3600, must-revalidate"
+
+[[headers]]
+  for = "/zkir/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Cache-Control = "public, max-age=3600, must-revalidate"
+
+# --- SPA fallback (React app routes only — not /keys or /zkir) ----------------
+[[redirects]]
+  from = "/keys/*"
+  to = "/keys/:splat"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/zkir/*"
+  to = "/zkir/:splat"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# --- Baseline security headers (HTML/JS assets) -------------------------------
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"

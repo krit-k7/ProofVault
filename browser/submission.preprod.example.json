@@ -1,0 +1,11 @@
+{
+  "network": "preprod",
+  "contractAddress": "REPLACE_WITH_64_CHAR_HEX_FROM_WALLET_BAR",
+  "deployTxId": "REPLACE_OPTIONAL_DEPLOY_TX_HASH",
+  "demoProveTxId": "00c66335146228f6",
+  "demoProveBlock": 1578743,
+  "liveDemoUrl": "https://por-browser.netlify.app",
+  "repositoryUrl": "https://github.com/Cryptonean/confidential-por-midnight",
+  "circuit": "por-browser N=8 proveSolvency",
+  "notes": "Copy to submission.preprod.json after Deploy fresh contract on Netlify. demoProveTxId is a prefix from a successful prove — replace with your own."
+}

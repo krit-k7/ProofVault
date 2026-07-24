@@ -1,0 +1,23 @@
+node_modules/
+browser/node_modules/
+browser/dist/
+browser/.vite/
+browser/.netlify/
+browser/src/generated/
+browser/public/keys/*.prover
+browser/submission.preprod.json
+browser/.env
+
+# Compact compiler output is committed as proof of a successful compile
+# (regenerate with `pnpm build:contract`). Only the macOS sidecars below are excluded.
+
+# macOS metadata (exFAT sidecars break ZK key-gen on external drives)
+.DS_Store
+._*
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+*.log

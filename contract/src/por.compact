@@ -1,0 +1,68 @@
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+// Confidential Proof of Reserves — Stage-B Merkle-SUM tree (N=64 leaves, depth 6).
+// Heap of 127 nodes: internal 0..62, leaves 63..126, root = node 0.
+// Each leaf is a salted commitment to a balance (hides + binds); each internal node is a
+// domain-separated hash of its children; sums are verified by per-node assertion. The
+// witnessed hash+sum tree is VERIFIED (not trusted). Publishes ONLY the root hash + reserves
+// + boolean; the total stays private. The published root lets customers prove inclusion.
+
+export sealed ledger owner: Bytes<32>;
+export ledger liabilitiesRoot: Bytes<32>;
+export ledger reservesSnapshot: Uint<128>;
+export ledger reservesSlot: Uint<64>;
+export ledger solvent: Boolean;
+export ledger published: Boolean;
+
+witness custodianSecretKey(): Bytes<32>;
+witness treeHashes(): Vector<127, Bytes<32>>;
+witness treeSums(): Vector<127, Uint<128>>;
+witness leafBalances(): Vector<64, Uint<64>>;
+witness leafSalts(): Vector<64, Bytes<32>>;
+
+circuit ownerKey(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "por:owner:"), sk]);
+}
+
+constructor() {
+  owner = disclose(ownerKey(custodianSecretKey()));
+}
+
+export circuit proveSolvency(reserves: Uint<128>, slot: Uint<64>): Boolean {
+  // 1. Owner-only (custodian) authorization
+  assert(disclose(ownerKey(custodianSecretKey()) == owner), "not custodian");
+
+  // 2. Anti-replay: each published snapshot must use a strictly newer slot than
+  // the last, so a stale-but-favorable (reserves, slot) cannot be re-published.
+  assert(disclose(!published || slot > reservesSlot), "stale slot");
+
+  const hashes = treeHashes();
+  const sums = treeSums();
+  const bals = leafBalances();
+  const salts = leafSalts();
+
+  // 3. Leaves (heap indices 63..126): hash is a salted commitment to the balance
+  //    (hides + binds); leaf sum == balance.
+  for (const j of 0..64) {
+    assert(hashes[63 + j] == persistentCommit<Uint<64>>(bals[j], salts[j]), "leaf hash mismatch");
+    assert(sums[63 + j] == (bals[j] as Uint<128>), "leaf sum mismatch");
+  }
+
+  // 4. Internal nodes: sum == left + right; hash == domain-separated hash of child hashes.
+  for (const i of 0..63) {
+    assert(sums[i] == sums[2 * i + 1] + sums[2 * i + 2], "node sum mismatch");
+    assert(hashes[i] == persistentHash<Vector<3, Bytes<32>>>(
+      [pad(32, "por:node:"), hashes[2 * i + 1], hashes[2 * i + 2]]), "node hash mismatch");
+  }
+
+  // 5. Publish the verified root. Total (sums[0]) is NEVER stored.
+  liabilitiesRoot = disclose(hashes[0]);
+  reservesSnapshot = disclose(reserves);
+  reservesSlot = disclose(slot);
+  const ok = disclose(sums[0] <= reserves);
+  solvent = ok;
+  published = true;
+  return ok;
+}

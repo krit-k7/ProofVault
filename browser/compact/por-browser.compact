@@ -1,0 +1,59 @@
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+// Browser demo — N=8 Merkle-SUM tree (depth 3). Smaller PLONK circuit for local/1AM proving.
+// Production N=64 circuit lives in packages/contract/src/por.compact.
+
+export sealed ledger owner: Bytes<32>;
+export ledger liabilitiesRoot: Bytes<32>;
+export ledger reservesSnapshot: Uint<128>;
+export ledger reservesSlot: Uint<64>;
+export ledger solvent: Boolean;
+export ledger published: Boolean;
+
+// These public fields expose only the eligibility verdict and the derived public values
+// needed for verification; the underlying balances and salts remain private witness data.
+
+witness custodianSecretKey(): Bytes<32>;
+witness treeHashes(): Vector<15, Bytes<32>>;
+witness treeSums(): Vector<15, Uint<128>>;
+witness leafBalances(): Vector<8, Uint<64>>;
+witness leafSalts(): Vector<8, Bytes<32>>;
+
+circuit ownerKey(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "por:owner:"), sk]);
+}
+
+constructor() {
+  owner = disclose(ownerKey(custodianSecretKey()));
+}
+
+export circuit proveSolvency(reserves: Uint<128>, slot: Uint<64>): Boolean {
+  assert(disclose(ownerKey(custodianSecretKey()) == owner), "not custodian");
+  assert(disclose(!published || slot > reservesSlot), "stale slot");
+
+  const hashes = treeHashes();
+  const sums = treeSums();
+  const bals = leafBalances();
+  const salts = leafSalts();
+
+  for (const j of 0..8) {
+    assert(hashes[7 + j] == persistentCommit<Uint<64>>(bals[j], salts[j]), "leaf hash mismatch");
+    assert(sums[7 + j] == (bals[j] as Uint<128>), "leaf sum mismatch");
+  }
+
+  for (const i of 0..7) {
+    assert(sums[i] == sums[2 * i + 1] + sums[2 * i + 2], "node sum mismatch");
+    assert(hashes[i] == persistentHash<Vector<3, Bytes<32>>>(
+      [pad(32, "por:node:"), hashes[2 * i + 1], hashes[2 * i + 2]]), "node hash mismatch");
+  }
+
+  liabilitiesRoot = disclose(hashes[0]);
+  reservesSnapshot = disclose(reserves);
+  reservesSlot = disclose(slot);
+  const ok = disclose(sums[0] <= reserves);
+  solvent = ok;
+  published = true;
+  return ok;
+}

@@ -1,0 +1,14 @@
+[
+  { "id": "alice", "balance": "100" },
+  { "id": "bob", "balance": "250" },
+  { "id": "carol", "balance": "150" },
+  { "id": "dave", "balance": "75" },
+  { "id": "erin", "balance": "300" },
+  { "id": "frank", "balance": "20" },
+  { "id": "grace", "balance": "410" },
+  { "id": "heidi", "balance": "60" },
+  { "id": "ivan", "balance": "5" },
+  { "id": "judy", "balance": "90" },
+  { "id": "mallory", "balance": "1000" },
+  { "id": "olivia", "balance": "45" }
+]

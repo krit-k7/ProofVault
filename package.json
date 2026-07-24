@@ -1,0 +1,31 @@
+{
+  "name": "confidential-por-midnight",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Solvency Eligibility Gate on Midnight — Compact circuit + Lace browser DApp (Rise In Level 3)",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build:contract": "compact compile --skip-zk contract/src/por.compact contract/managed",
+    "test": "vitest run",
+    "pretest": "pnpm build:contract",
+    "browser:dev": "pnpm --dir browser dev",
+    "browser:build": "pnpm --dir browser build",
+    "browser:build:zk": "pnpm --dir browser build:zk",
+    "browser:deploy": "pnpm --dir browser deploy:netlify",
+    "test:browser": "pnpm --dir browser test",
+    "test:all": "pnpm test && pnpm test:browser"
+  },
+  "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "0.16.0",
+    "@midnight-ntwrk/onchain-runtime-v3": "*",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.2.6"
+  }
+}

@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+# Notes:
+# - browser/src/generated/ is gitignored (from `pnpm build:zk` / Compact).
+# - Full `tsc` needs those artifacts; Level 3 CI therefore runs Vitest unit
+#   tests (eligibility + Merkle tree), which do not require generated contract JS.
+
+jobs:
+  browser-tests:
+    name: browser unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: browser
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: browser/pnpm-lock.yaml
+
+      - name: Install browser dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Unit tests (eligibility + tree)
+        run: pnpm test
